@@ -1,61 +1,69 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using Aquila360.Attendance;
+using Aquila360.Attendance.Contracts;
 using Aquila360.Attendance.Models;
-using Azure.Core;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace Aquila360.Attendance.Services
 {
-	public class HubStaffService : IDisposable
-	{
-        private readonly string _accessToken;
-        private readonly HttpClient _client;
+    public class HubStaffService : IHubStaffService
+    {
+        private readonly IConfigurationService _configSvc;
         private readonly ILogger _log;
 
-        public HubStaffService(string accessToken, ILogger log)
+        public HubStaffService(IConfigurationService configSvc, ILoggerFactory logFactory)
         {
-            _accessToken = accessToken;
-            _client = new HttpClient();
-            _log = log;
-
-            SetupClient();
+            _configSvc = configSvc;
+            _log = logFactory.CreateLogger<HubStaffService>();
         }
 
-        public void Dispose()
+        public async Task<HubStaffDailyActivityResponse?> GetActivities(DateTime date)
         {
-            _client.Dispose();
-        }
-
-        public async Task<HubStaffDailyActivityResponse> GetActivities(int orgId, DateTime date)
-		{
+            var orgId = await _configSvc.OrgId();
             var urlDate = date.ToString("yyyy-MM-dd");
             var url = $"https://api.hubstaff.com/v2/organizations/{orgId}/activities/daily"
                 + $"?date[start]=@{urlDate}T00:00:00Z&date[stop]=@{urlDate}T00:00:00Z"
                 + "&include[]=users&include[]=projects&include[]=tasks";
 
-            var response = await _client.GetAsync(url);
+            using var client = new HttpClient();
+            await SetupClient(client);
+            var response = await client.GetAsync(url);
 
-            _log.LogError($"HubStaff Daily Activity Response Status Code: {response.StatusCode}");
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"Status Code: {response.StatusCode}");
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<HubStaffDailyActivityResponse>(json);
+        }
+
+        public async Task<HubStaffAccessTokenResponse?> RefreshAccessToken(string refreshToken)
+        {
+            var url = $"https://account.hubstaff.com/access_tokens?grant_type=refresh_token&refresh_token={refreshToken}";
+
+            using var client = new HttpClient();
+            await SetupClient(client);
+            var response = await client.PostAsync(url, null);
 
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadAsAsync<HubStaffDailyActivityResponse>();
+                var json = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<HubStaffAccessTokenResponse>(json);
             }
 
-            return new HubStaffDailyActivityResponse();
+            return new HubStaffAccessTokenResponse();
         }
 
-        private void SetupClient()
+        private async Task SetupClient(HttpClient client)
         {
-            _client.DefaultRequestHeaders.Clear();
-            _client.DefaultRequestHeaders.Add("Accept", "application/json");
-            _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_accessToken}");
+            var accessToken = await _configSvc.AccessToken();
+
+            client.DefaultRequestHeaders.Clear();
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
         }
-	}
+    }
 }

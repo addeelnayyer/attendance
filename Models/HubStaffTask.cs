@@ -1,13 +1,13 @@
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Aquila360.Attendance.Models
 {
+    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     public class HubStaffTask
     {
-        [JsonProperty("id")]
         public long Id { get; set; }
 
-        [JsonProperty("summary")]
         public string Summary { get; set; }
     }
 }
