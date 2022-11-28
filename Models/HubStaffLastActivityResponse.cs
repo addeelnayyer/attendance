@@ -9,5 +9,5 @@ namespace Aquila360.Attendance.Models
 
 		[JsonProperty("users")]
         public IEnumerable<HubStaffUser> Users { get; set; } = new List<HubStaffUser>();
-    }
+  }
 }

@@ -74,7 +74,7 @@ namespace Aquila360.Attendance.Functions
             finally
             {
                 stopWatch.Stop();
-                var model = new ActivityLogModel(date)
+                var model = new ActivityLogModel("DailyActivity", date)
                 {
                     ActivitiesDate = date,
                     ActivitiesCount = response?.DailyActivities.Count(),

@@ -40,7 +40,7 @@ namespace Aquila360.Attendance.Functions
                 if (response == null || string.IsNullOrWhiteSpace(response.AccessToken)
                     || string.IsNullOrWhiteSpace(response.RefreshToken))
                 {
-                    var model = new ActivityLogModel(DateTime.Now)
+                    var model = new ActivityLogModel("AccessToken", DateTime.Now)
                     {
                         Successful = false,
                         Message = $"Failed to refresh access token. Received empty response!"
@@ -59,7 +59,7 @@ namespace Aquila360.Attendance.Functions
             }
             catch (Exception ex)
             {
-                var model = new ActivityLogModel(DateTime.Now)
+                var model = new ActivityLogModel("AccessToken", DateTime.Now)
                 {
                     Successful = false,
                     Message = $"Failed to refresh access token. Message: {ex.Message}"

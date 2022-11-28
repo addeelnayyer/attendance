@@ -2,18 +2,20 @@
 
 namespace Aquila360.Attendance.Models
 {
-	public class ActivityLogModel : BaseModel
+	  public class ActivityLogModel : BaseModel
     {
+        private readonly string _category;
         private readonly DateTime _date;
 
-        public ActivityLogModel(DateTime date)
+        public ActivityLogModel(string category, DateTime date)
         {
+            _category = category;
             _date = date;
         }
 
-        public new string Id => _date.ToString("yyyy-MM-ddTHH:mm");
+        public new string Id => $"{_date:yyyy-MM-ddTHH:mm}";
 
-        public string Date => _date.ToString("yyyy-MM-dd");
+        public string Date => $"{_category}_{_date:yyyy-MM-dd}";
 
         public int? ActivitiesCount { get; set; }
 
@@ -23,6 +25,6 @@ namespace Aquila360.Attendance.Models
 
         public bool Successful { get; set; } = false;
 
-		public string Message { get; set; }
+		    public string Message { get; set; } = string.Empty;
     }
 }

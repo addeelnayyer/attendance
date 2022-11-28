@@ -63,7 +63,7 @@ namespace Aquila360.Attendance.Functions
             }
             finally
             {
-                var model = new ActivityLogModel(DateTime.Now)
+                var model = new ActivityLogModel("OnlineStatus", DateTime.Now)
                 {
                     Successful = successful,
                     Message = message
