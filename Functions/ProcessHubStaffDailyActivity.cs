@@ -9,7 +9,7 @@ using Aquila360.Attendance.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
-namespace Aquila360.Attendance
+namespace Aquila360.Attendance.Functions
 {
     public class ProcessHubStaffDailyActivity
     {

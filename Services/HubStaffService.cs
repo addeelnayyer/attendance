@@ -40,6 +40,25 @@ namespace Aquila360.Attendance.Services
             return JsonConvert.DeserializeObject<HubStaffDailyActivityResponse>(json);
         }
 
+        public async Task<HubStaffLastActivityResponse?> GetRecentActivities()
+        {
+            var orgId = await _configSvc.OrgId();
+            var url = $"https://api.hubstaff.com/v2/organizations/{orgId}/last_activities"
+                + "?page_start_id=1&page_limit=500&include[]=users";
+
+            using var client = new HttpClient();
+            await SetupClient(client);
+            var response = await client.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"Status Code: {response.StatusCode}");
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<HubStaffLastActivityResponse>(json);
+        }
+
         public async Task<HubStaffAccessTokenResponse?> RefreshAccessToken(string refreshToken)
         {
             var url = $"https://account.hubstaff.com/access_tokens?grant_type=refresh_token&refresh_token={refreshToken}";

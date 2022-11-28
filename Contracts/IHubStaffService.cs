@@ -8,6 +8,8 @@ namespace Aquila360.Attendance.Contracts
     {
         Task<HubStaffDailyActivityResponse?> GetActivities(DateTime date);
 
+        Task<HubStaffLastActivityResponse?> GetRecentActivities();
+
         Task<HubStaffAccessTokenResponse?> RefreshAccessToken(string refreshToken);
     }
 }
