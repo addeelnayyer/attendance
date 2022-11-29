@@ -1,12 +1,7 @@
-using System;
-using System.Diagnostics;
 using Aquila360.Attendance.Contracts;
 using Aquila360.Attendance.Models;
-using Aquila360.Attendance.Services;
-using Google.Protobuf;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace Aquila360.Attendance.Functions
 {

@@ -54,25 +54,40 @@ namespace Aquila360.Attendance.Services
                 }
             });
 
-            var tasks = lastActivityResponse.LastActivities.Select(lastActivity => 
+            var deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
+                Client.DeleteAsync($"onlineStatus/{users[lastActivity.UserId].Email}"));
+
+            await Task.WhenAll(deleteTasks);
+
+            var setTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
                 Client.SetAsync(
                     $"onlineStatus/{users[lastActivity.UserId].Email}",
                     lastActivity.Online == true));
 
             _logger.LogInformation($"[{nameof(FirebaseService)}] Waiting for onlineStatus node update.");
 
-            var setResponses = await Task.WhenAll(tasks);
+            var setResponses = await Task.WhenAll(setTasks);
 
             _logger.LogInformation($"[{nameof(FirebaseService)}] Waiting for onlineStatus node update.");
 
             syncSuccessfully = syncSuccessfully && setResponses.All(x => x.StatusCode == HttpStatusCode.OK);
 
-            tasks = lastActivityResponse.LastActivities.Select(lastActivity =>
+            deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
+                Client.DeleteAsync($"online/{users[lastActivity.UserId].Email}"));
+
+            await Task.WhenAll(deleteTasks);
+
+            deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
+                Client.DeleteAsync($"offline/{users[lastActivity.UserId].Email}"));
+
+            await Task.WhenAll(deleteTasks);
+
+            setTasks = lastActivityResponse.LastActivities.Select(lastActivity =>
                 Client.SetAsync(
                     $"{(lastActivity.Online == true ? "online" : "offline")}/{users[lastActivity.UserId].Email}",
                     lastActivity.LastClientActivity != null ? lastActivity.LastClientActivity : DateTime.MinValue));
 
-            setResponses = await Task.WhenAll(tasks);
+            setResponses = await Task.WhenAll(setTasks);
             syncSuccessfully = syncSuccessfully && setResponses.All(x => x.StatusCode == HttpStatusCode.OK);
 
             return syncSuccessfully;
