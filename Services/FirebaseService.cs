@@ -37,15 +37,7 @@ namespace Aquila360.Attendance.Services
                 return false;
             }
 
-            var syncSuccessfully = true;
-
-            var users = lastActivityResponse.Users
-                .Select(user =>
-                {
-                    user.Email = user.Email.Replace(".", "_").Replace("@", "_");
-                    return user;
-                })
-                .ToDictionary(x => x.Id);
+            var users = lastActivityResponse.Users.ToDictionary(x => x.Id);
 
             lastActivityResponse.LastActivities.ToList().ForEach(lastActivity => {
                 if (lastActivity.LastClientActivity.HasValue)
@@ -54,43 +46,24 @@ namespace Aquila360.Attendance.Services
                 }
             });
 
-            //var deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
-            //    Client.DeleteAsync($"onlineStatus/{users[lastActivity.UserId].Email}"));
+            var tasks = lastActivityResponse.LastActivities.Select(lastActivity =>
+            {
+                var key = users[lastActivity.UserId].Email.Replace("@aquila360.com", string.Empty).Replace(".", string.Empty);
 
-            //await Task.WhenAll(deleteTasks);
+                return Client.SetAsync(
+                    $"onlineStatus/{key}",
+                    new
+                    {
+                        email = users[lastActivity.UserId].Email,
+                        name = users[lastActivity.UserId].Name,
+                        isOnline = lastActivity.Online,
+                        lastActivity = lastActivity.LastClientActivity
+                    });
+            });
 
-            var setTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
-                Client.SetAsync(
-                    $"onlineStatus/{users[lastActivity.UserId].Email}",
-                    lastActivity.Online == true));
+            var setResponses = await Task.WhenAll(tasks);
 
-            _logger.LogInformation($"[{nameof(FirebaseService)}] Waiting for onlineStatus node update.");
-
-            var setResponses = await Task.WhenAll(setTasks);
-
-            _logger.LogInformation($"[{nameof(FirebaseService)}] Waiting for onlineStatus node update.");
-
-            syncSuccessfully = syncSuccessfully && setResponses.All(x => x.StatusCode == HttpStatusCode.OK);
-
-            //deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
-            //    Client.DeleteAsync($"online/{users[lastActivity.UserId].Email}"));
-
-            //await Task.WhenAll(deleteTasks);
-
-            //deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
-            //    Client.DeleteAsync($"offline/{users[lastActivity.UserId].Email}"));
-
-            //await Task.WhenAll(deleteTasks);
-
-            setTasks = lastActivityResponse.LastActivities.Select(lastActivity =>
-                Client.SetAsync(
-                    $"{(lastActivity.Online == true ? "online" : "offline")}/{users[lastActivity.UserId].Email}",
-                    lastActivity.LastClientActivity != null ? lastActivity.LastClientActivity : DateTime.MinValue));
-
-            setResponses = await Task.WhenAll(setTasks);
-            syncSuccessfully = syncSuccessfully && setResponses.All(x => x.StatusCode == HttpStatusCode.OK);
-
-            return syncSuccessfully;
+            return setResponses.All(x => x.StatusCode == HttpStatusCode.OK);
         }
     }
 }

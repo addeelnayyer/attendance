@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Aquila360.Attendance.Contracts;
 using Aquila360.Attendance.Models;
 using Microsoft.Azure.Functions.Worker;
@@ -31,7 +28,7 @@ namespace Aquila360.Attendance.Functions
         }
 
         [Function("RefreshAccessTokens")]
-        public async Task Run([TimerTrigger("* */30 * * * *")]TimerInfo myTimer)
+        public async Task Run([TimerTrigger("0 */30 * * * *")]TimerInfo myTimer)
         {
             try
             {

@@ -43,61 +43,58 @@ namespace Aquila360.Attendance.Functions
         }
 
         [Function("ProcessHubStaffDailyActivity")]
-        public async Task Run([TimerTrigger("0 40 6 * * *")]TimerInfo myTimer)
+        public async Task Run([TimerTrigger("0 */1 * * * *")]TimerInfo myTimer)
         {
             var successful = true;
             var message = string.Empty;
 
             var response = new HubStaffDailyActivityResponse();
 
-            for (var date = new DateTime(2022, 11, 1); date < DateTime.Today; date = date.AddDays(1))
+            var date = DateTime.Now;
+            var stopWatch = new Stopwatch();
+            stopWatch.Start();
+
+            try
             {
-                //var date = DateTime.Now;
-                var stopWatch = new Stopwatch();
-                stopWatch.Start();
+                response = await _hubStaffSvc.GetDailyActivities(date);
 
-                try
+                if (response != null)
                 {
-                    response = await _hubStaffSvc.GetDailyActivities(date);
+                    var attendanceModels = _activityProcessor.ProcessDailyActivityResponse(response);
 
-                    if (response != null)
-                    {
-                        var attendanceModels = _activityProcessor.ProcessDailyActivityResponse(response);
+                    var activities = await _hubStaffSvc.GetActivities(date);
+                    var attendanceSummaryModels = _activityProcessor.SummarizeAttendance(attendanceModels, activities);
 
-                        var activities = await _hubStaffSvc.GetActivities(date);
-                        var attendanceSummaryModels = _activityProcessor.SummarizeAttendance(attendanceModels, activities);
-
-                        await Task.WhenAll(
-                            _attendanceByEmployeeCosmosSvc.BulkUpsert(attendanceModels),
-                            _attendanceByPeriodCosmosSvc.BulkUpsert(attendanceModels),
-                            _attendanceSummaryByEmployeeCosmosSvc.BulkUpsert(attendanceSummaryModels),
-                            _attendanceSummaryByPeriodCosmosSvc.BulkUpsert(attendanceSummaryModels));
-                    }
-                    else
-                    {
-                        successful = false;
-                        message = $"Failed to process daily activities. Received empty response!";
-                    }
+                    await Task.WhenAll(
+                        _attendanceByEmployeeCosmosSvc.BulkUpsert(attendanceModels),
+                        _attendanceByPeriodCosmosSvc.BulkUpsert(attendanceModels),
+                        _attendanceSummaryByEmployeeCosmosSvc.BulkUpsert(attendanceSummaryModels),
+                        _attendanceSummaryByPeriodCosmosSvc.BulkUpsert(attendanceSummaryModels));
                 }
-                catch (Exception ex)
+                else
                 {
                     successful = false;
-                    message = ex.Message;
+                    message = $"Failed to process daily activities. Received empty response!";
                 }
-                finally
+            }
+            catch (Exception ex)
+            {
+                successful = false;
+                message = ex.Message;
+            }
+            finally
+            {
+                stopWatch.Stop();
+                var model = new ActivityLogModel("DailyActivity", date)
                 {
-                    stopWatch.Stop();
-                    var model = new ActivityLogModel("DailyActivity", date)
-                    {
-                        ActivitiesDate = date,
-                        ActivitiesCount = response?.DailyActivities.Count(),
-                        Duration = stopWatch.ElapsedMilliseconds,
-                        Successful = successful,
-                        Message = message
-                    };
+                    ActivitiesDate = date,
+                    ActivitiesCount = response?.DailyActivities.Count(),
+                    Duration = stopWatch.ElapsedMilliseconds,
+                    Successful = successful,
+                    Message = message
+                };
 
-                    await _activityLogsCosmosSvc.Upsert(model);
-                }
+                await _activityLogsCosmosSvc.Upsert(model);
             }
         }
     }
