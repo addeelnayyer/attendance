@@ -64,7 +64,7 @@ namespace Aquila360.Attendance.Functions
                     Message = message
                 };
 
-                await _activityLogsCosmosSvc.Insert(model);
+                await _activityLogsCosmosSvc.Upsert(model);
             }
         }
     }

@@ -1,6 +1,6 @@
 ﻿namespace Aquila360.Attendance.Models
 {
-    public class AttendanceModel : BaseModel
+    public class AttendanceSummaryModel : BaseModel
 	{
         public string Email { get; set; } = string.Empty;
 
@@ -8,9 +8,9 @@
 
         public DateTime Date { get; set; }
 
-        public string Project { get; set; } = string.Empty;
+        public DateTime CheckInTime { get; set; }
 
-        public string Task { get; set; } = string.Empty;
+        public DateTime CheckOutTime { get; set; }
 
         public int Tracked { get; set; }
 
@@ -19,5 +19,7 @@
         public int Idle { get; set; }
 
         public int Resumed { get; set; }
+
+        public int TotalTime => Tracked - Idle;
     }
 }

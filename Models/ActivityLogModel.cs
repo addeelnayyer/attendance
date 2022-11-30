@@ -15,7 +15,7 @@ namespace Aquila360.Attendance.Models
 
         public new string Id => $"{_date:yyyy-MM-ddTHH:mm}";
 
-        public string Date => $"{_category}_{_date:yyyy-MM-dd}";
+        public string PartitionKey => $"{_category}_{_date:yyyy-MM-dd}";
 
         public int? ActivitiesCount { get; set; }
 

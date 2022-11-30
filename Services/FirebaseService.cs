@@ -54,10 +54,10 @@ namespace Aquila360.Attendance.Services
                 }
             });
 
-            var deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
-                Client.DeleteAsync($"onlineStatus/{users[lastActivity.UserId].Email}"));
+            //var deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
+            //    Client.DeleteAsync($"onlineStatus/{users[lastActivity.UserId].Email}"));
 
-            await Task.WhenAll(deleteTasks);
+            //await Task.WhenAll(deleteTasks);
 
             var setTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
                 Client.SetAsync(
@@ -72,15 +72,15 @@ namespace Aquila360.Attendance.Services
 
             syncSuccessfully = syncSuccessfully && setResponses.All(x => x.StatusCode == HttpStatusCode.OK);
 
-            deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
-                Client.DeleteAsync($"online/{users[lastActivity.UserId].Email}"));
+            //deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
+            //    Client.DeleteAsync($"online/{users[lastActivity.UserId].Email}"));
 
-            await Task.WhenAll(deleteTasks);
+            //await Task.WhenAll(deleteTasks);
 
-            deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
-                Client.DeleteAsync($"offline/{users[lastActivity.UserId].Email}"));
+            //deleteTasks = lastActivityResponse.LastActivities.Select(lastActivity => 
+            //    Client.DeleteAsync($"offline/{users[lastActivity.UserId].Email}"));
 
-            await Task.WhenAll(deleteTasks);
+            //await Task.WhenAll(deleteTasks);
 
             setTasks = lastActivityResponse.LastActivities.Select(lastActivity =>
                 Client.SetAsync(

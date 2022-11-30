@@ -46,7 +46,7 @@ namespace Aquila360.Attendance.Functions
                         Message = $"Failed to refresh access token. Received empty response!"
                     };
 
-                    await _activityLogsCosmosSvc.Insert(model);
+                    await _activityLogsCosmosSvc.Upsert(model);
 
                     return;
                 }
@@ -65,7 +65,7 @@ namespace Aquila360.Attendance.Functions
                     Message = $"Failed to refresh access token. Message: {ex.Message}"
                 };
 
-                await _activityLogsCosmosSvc.Insert(model);
+                await _activityLogsCosmosSvc.Upsert(model);
             }
         }
     }

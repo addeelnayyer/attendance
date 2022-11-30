@@ -17,6 +17,8 @@ namespace Aquila360.Attendance.Functions
         private readonly IActivityProcessor _activityProcessor;
         private readonly IAttendanceByEmployeeCosmosService _attendanceByEmployeeCosmosSvc;
         private readonly IAttendanceByPeriodCosmosService _attendanceByPeriodCosmosSvc;
+        private readonly IAttendanceSummaryByEmployeeCosmosService _attendanceSummaryByEmployeeCosmosSvc;
+        private readonly IAttendanceSummaryByPeriodCosmosService _attendanceSummaryByPeriodCosmosSvc;
         private readonly IHubStaffService _hubStaffSvc;
         private readonly ILogger _log;
 
@@ -25,6 +27,8 @@ namespace Aquila360.Attendance.Functions
             IActivityProcessor activityProcessor,
             IAttendanceByEmployeeCosmosService attendanceByEmployeeCosmosSvc,
             IAttendanceByPeriodCosmosService attendanceByPeriodCosmosSvc,
+            IAttendanceSummaryByEmployeeCosmosService attendanceSummaryByEmployeeCosmosSvc,
+            IAttendanceSummaryByPeriodCosmosService attendanceSummaryByPeriodCosmosSvc,
             IHubStaffService hubStaffSvc,
             ILoggerFactory loggerFactory)
         {
@@ -32,58 +36,68 @@ namespace Aquila360.Attendance.Functions
             _activityProcessor = activityProcessor;
             _attendanceByEmployeeCosmosSvc = attendanceByEmployeeCosmosSvc;
             _attendanceByPeriodCosmosSvc = attendanceByPeriodCosmosSvc;
+            _attendanceSummaryByEmployeeCosmosSvc = attendanceSummaryByEmployeeCosmosSvc;
+            _attendanceSummaryByPeriodCosmosSvc = attendanceSummaryByPeriodCosmosSvc;
             _hubStaffSvc = hubStaffSvc;
             _log = loggerFactory.CreateLogger<ProcessHubStaffDailyActivity>();
         }
 
         [Function("ProcessHubStaffDailyActivity")]
-        public async Task Run([TimerTrigger("0 */1 * * * *")]TimerInfo myTimer)
+        public async Task Run([TimerTrigger("0 40 6 * * *")]TimerInfo myTimer)
         {
             var successful = true;
             var message = string.Empty;
 
             var response = new HubStaffDailyActivityResponse();
 
-            var date = DateTime.Now;
-            var stopWatch = new Stopwatch();
-            stopWatch.Start();
-
-            try
+            for (var date = new DateTime(2022, 11, 1); date < DateTime.Today; date = date.AddDays(1))
             {
-                response = await _hubStaffSvc.GetActivities(date);
+                //var date = DateTime.Now;
+                var stopWatch = new Stopwatch();
+                stopWatch.Start();
 
-                if (response != null)
+                try
                 {
-                    var attendanceModels = _activityProcessor.ProcessDailyActivityResponse(response);
+                    response = await _hubStaffSvc.GetDailyActivities(date);
 
-                    await Task.WhenAll(
-                        _attendanceByEmployeeCosmosSvc.BulkUpsert(attendanceModels),
-                        _attendanceByPeriodCosmosSvc.BulkUpsert(attendanceModels));
+                    if (response != null)
+                    {
+                        var attendanceModels = _activityProcessor.ProcessDailyActivityResponse(response);
+
+                        var activities = await _hubStaffSvc.GetActivities(date);
+                        var attendanceSummaryModels = _activityProcessor.SummarizeAttendance(attendanceModels, activities);
+
+                        await Task.WhenAll(
+                            _attendanceByEmployeeCosmosSvc.BulkUpsert(attendanceModels),
+                            _attendanceByPeriodCosmosSvc.BulkUpsert(attendanceModels),
+                            _attendanceSummaryByEmployeeCosmosSvc.BulkUpsert(attendanceSummaryModels),
+                            _attendanceSummaryByPeriodCosmosSvc.BulkUpsert(attendanceSummaryModels));
+                    }
+                    else
+                    {
+                        successful = false;
+                        message = $"Failed to process daily activities. Received empty response!";
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
                     successful = false;
-                    message = $"Failed to process daily activities. Received empty response!";
+                    message = ex.Message;
                 }
-            }
-            catch (Exception ex)
-            {
-                successful = false;
-                message = ex.Message;
-            }
-            finally
-            {
-                stopWatch.Stop();
-                var model = new ActivityLogModel("DailyActivity", date)
+                finally
                 {
-                    ActivitiesDate = date,
-                    ActivitiesCount = response?.DailyActivities.Count(),
-                    Duration = stopWatch.ElapsedMilliseconds,
-                    Successful = successful,
-                    Message = message
-                };
+                    stopWatch.Stop();
+                    var model = new ActivityLogModel("DailyActivity", date)
+                    {
+                        ActivitiesDate = date,
+                        ActivitiesCount = response?.DailyActivities.Count(),
+                        Duration = stopWatch.ElapsedMilliseconds,
+                        Successful = successful,
+                        Message = message
+                    };
 
-                await _activityLogsCosmosSvc.Insert(model);
+                    await _activityLogsCosmosSvc.Upsert(model);
+                }
             }
         }
     }

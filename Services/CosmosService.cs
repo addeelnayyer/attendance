@@ -57,7 +57,6 @@ public abstract class CosmosService<T> : ICosmosService<T> where T : BaseModel
         return results;
     }
 
-
     //public async Task<IEnumerable<T>> RetrieveAsync(string sql)
     //{
     //    string sql = """

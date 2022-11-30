@@ -1,12 +1,12 @@
-﻿using System;
-using System.Threading.Tasks;
-using Aquila360.Attendance.Models;
+﻿using Aquila360.Attendance.Models;
 
 namespace Aquila360.Attendance.Contracts
 {
     public interface IHubStaffService
     {
-        Task<HubStaffDailyActivityResponse?> GetActivities(DateTime date);
+        Task<HubStaffActivityResponse?> GetActivities(DateTime date);
+
+        Task<HubStaffDailyActivityResponse?> GetDailyActivities(DateTime date);
 
         Task<HubStaffLastActivityResponse?> GetRecentActivities();
 

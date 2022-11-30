@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Aquila360.Attendance.Contracts;
+﻿using Aquila360.Attendance.Contracts;
 using Aquila360.Attendance.Models;
 
 namespace Aquila360.Attendance.Services
@@ -40,6 +37,61 @@ namespace Aquila360.Attendance.Services
             }
 
             return result;
+        }
+    
+        public IEnumerable<AttendanceSummaryModel> SummarizeAttendance(
+            IEnumerable<AttendanceModel> attendanceModels,
+            HubStaffActivityResponse? response)
+        {
+            var attendanceSummaryList = attendanceModels
+                .GroupBy(x => new { x.Period, x.Date, x.Email })
+                .Select(group => new AttendanceSummaryModel
+                {
+                    Id = $"{group.Key.Email}_{group.Key.Date:yyyy-MM-dd}",
+                    Email = group.Key.Email,
+                    Period = group.Key.Period,
+                    Date = group.Key.Date,
+                    Tracked = group.Sum(x => x.Tracked),
+                    Manual = group.Sum(x => x.Manual),
+                    Idle = group.Sum(x => x.Idle),
+                    Resumed = group.Sum(x => x.Resumed)
+                })
+                .ToList();
+
+            if (response != null)
+            {
+                var users = response.Users.ToDictionary(x => x.Id);
+                response.Activities = response.Activities.Select(x =>
+                {
+                    x.StartsAt.AddHours(5);
+                    return x;
+                });
+
+                attendanceSummaryList.ForEach(summary =>
+                {
+                    var firstRecord = response.Activities
+                        .Where(x => users[x.UserId].Email == summary.Email)
+                        .OrderBy(x => x.StartsAt)
+                        .FirstOrDefault();
+
+                    if (firstRecord != null)
+                    {
+                        summary.CheckInTime = firstRecord.StartsAt;
+                    }
+
+                    var lastRecord = response.Activities
+                        .Where(x => users[x.UserId].Email == summary.Email)
+                        .OrderByDescending(x => x.StartsAt)
+                        .FirstOrDefault();
+
+                    if (lastRecord != null)
+                    {
+                        summary.CheckOutTime = lastRecord.StartsAt.AddSeconds(lastRecord.Tracked);
+                    }
+                });
+            }
+
+            return attendanceSummaryList;
         }
     }
 }
