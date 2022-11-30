@@ -6,6 +6,7 @@ using FireSharp.Config;
 using FireSharp.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace Aquila360.Attendance.Services
 {
@@ -39,13 +40,6 @@ namespace Aquila360.Attendance.Services
 
             var users = lastActivityResponse.Users.ToDictionary(x => x.Id);
 
-            lastActivityResponse.LastActivities.ToList().ForEach(lastActivity => {
-                if (lastActivity.LastClientActivity.HasValue)
-                {
-                    lastActivity.LastClientActivity = lastActivity.LastClientActivity.Value.AddHours(5);
-                }
-            });
-
             var tasks = lastActivityResponse.LastActivities.Select(lastActivity =>
             {
                 var key = users[lastActivity.UserId].Email.Replace("@aquila360.com", string.Empty).Replace(".", string.Empty);
@@ -60,6 +54,31 @@ namespace Aquila360.Attendance.Services
                         lastActivity = lastActivity.LastClientActivity
                     });
             });
+
+            var setResponses = await Task.WhenAll(tasks);
+
+            return setResponses.All(x => x.StatusCode == HttpStatusCode.OK);
+        }
+
+        public async Task<bool> UpdateTrackedTime(IEnumerable<AttendanceSummaryModel> models)
+        {
+            _logger.LogInformation($"[{nameof(FirebaseService)}] UpdateTrackedTime");
+
+            var trackedTime = models.ToDictionary(x => x.Email.Replace("@aquila360.com", string.Empty).Replace(".", string.Empty));
+
+            var trackedTimeResp = await Client.GetAsync("trackedTime");
+            var prevTrackedTime = JsonConvert.DeserializeObject<Dictionary<string, AttendanceSummaryModel>>(trackedTimeResp.Body);
+
+            if (prevTrackedTime != null)
+            {
+                var deletions = prevTrackedTime
+                    .Where(x => !trackedTime.Keys.Contains(x.Key))
+                    .Select(x => Client.DeleteAsync($"trackedTime/{x.Key}"));
+
+                await Task.WhenAll(deletions);
+            }
+
+            var tasks = trackedTime.Select(x => Client.SetAsync($"trackedTime/{x.Key}", x.Value));
 
             var setResponses = await Task.WhenAll(tasks);
 

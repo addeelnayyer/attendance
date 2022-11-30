@@ -61,12 +61,7 @@ namespace Aquila360.Attendance.Services
             if (response != null)
             {
                 var users = response.Users.ToDictionary(x => x.Id);
-                response.Activities = response.Activities.Select(x =>
-                {
-                    x.StartsAt.AddHours(5);
-                    return x;
-                });
-
+                
                 attendanceSummaryList.ForEach(summary =>
                 {
                     var firstRecord = response.Activities

@@ -19,6 +19,7 @@ namespace Aquila360.Attendance.Functions
         private readonly IAttendanceByPeriodCosmosService _attendanceByPeriodCosmosSvc;
         private readonly IAttendanceSummaryByEmployeeCosmosService _attendanceSummaryByEmployeeCosmosSvc;
         private readonly IAttendanceSummaryByPeriodCosmosService _attendanceSummaryByPeriodCosmosSvc;
+        private readonly IFirebaseService _firebaseSvc;
         private readonly IHubStaffService _hubStaffSvc;
         private readonly ILogger _log;
 
@@ -29,6 +30,7 @@ namespace Aquila360.Attendance.Functions
             IAttendanceByPeriodCosmosService attendanceByPeriodCosmosSvc,
             IAttendanceSummaryByEmployeeCosmosService attendanceSummaryByEmployeeCosmosSvc,
             IAttendanceSummaryByPeriodCosmosService attendanceSummaryByPeriodCosmosSvc,
+            IFirebaseService firebaseSvc,
             IHubStaffService hubStaffSvc,
             ILoggerFactory loggerFactory)
         {
@@ -38,6 +40,7 @@ namespace Aquila360.Attendance.Functions
             _attendanceByPeriodCosmosSvc = attendanceByPeriodCosmosSvc;
             _attendanceSummaryByEmployeeCosmosSvc = attendanceSummaryByEmployeeCosmosSvc;
             _attendanceSummaryByPeriodCosmosSvc = attendanceSummaryByPeriodCosmosSvc;
+            _firebaseSvc = firebaseSvc;
             _hubStaffSvc = hubStaffSvc;
             _log = loggerFactory.CreateLogger<ProcessHubStaffDailyActivity>();
         }
@@ -64,6 +67,8 @@ namespace Aquila360.Attendance.Functions
 
                     var activities = await _hubStaffSvc.GetActivities(date);
                     var attendanceSummaryModels = _activityProcessor.SummarizeAttendance(attendanceModels, activities);
+
+                    await _firebaseSvc.UpdateTrackedTime(attendanceSummaryModels);
 
                     await Task.WhenAll(
                         _attendanceByEmployeeCosmosSvc.BulkUpsert(attendanceModels),

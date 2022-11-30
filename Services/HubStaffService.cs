@@ -26,8 +26,8 @@ namespace Aquila360.Attendance.Services
 
             while (pageStartAt != 0)
             {
-                var startDate = date.ToString("yyyy-MM-dd");
-                var endDate = date.AddDays(1).ToString("yyyy-MM-dd");
+                var startDate = date.AddDays(-1).ToString("yyyy-MM-ddT19:00:00Z");
+                var endDate = date.ToString("yyyy-MM-ddT19:00:00Z");
                 var baseUrl = $"https://api.hubstaff.com/v2/organizations/{orgId}/activities";
                 var queryString = GetActivitiesQueryString(pageStartAt, startDate, endDate);
 

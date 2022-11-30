@@ -5,5 +5,7 @@ namespace Aquila360.Attendance.Contracts
     public interface IFirebaseService
     {
         Task<bool> UpdateOnlineStatus(HubStaffLastActivityResponse lastActivityResponse);
+
+        Task<bool> UpdateTrackedTime(IEnumerable<AttendanceSummaryModel> models);
     }
 }
